@@ -1,0 +1,55 @@
+---
+title: "Decision Tree Model"
+format: html
+editor: visual
+---
+
+## Decision Tree model
+
+```{r}
+load("/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
+```
+
+```{r}
+#Setup a decision tree model and workflow, tune the `cost_complexity` hyper parameter
+playlist_dectree_spec <- decision_tree() %>% set_mode("classification") %>%
+  set_engine("rpart")
+playlist_dectree_wf <- workflow() %>%
+  add_recipe(music_recipe) %>%
+  add_model(playlist_dectree_spec %>%
+              set_args(cost_complexity = tune()))
+
+
+# creating parameter grid to tune ranges of hyper parameters
+playlist_dt_param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+
+
+# fit the models to our folded data using `tune_grid()`
+playlist_dt_tune_res <- tune_grid(
+  playlist_dectree_wf, 
+  resamples = playlist_folds, 
+  grid = playlist_dt_param_grid, 
+  metrics = metric_set(yardstick::roc_auc)
+)
+```
+
+```{r}
+# find the `roc_auc` of best-performing pruned decision tree on the folds
+# use `collect_metrics()` and `arrange()`
+playlist_best_pruned_tree <- dplyr::arrange(collect_metrics(playlist_dt_tune_res), desc(mean))
+playlist_best_pruned_tree
+
+
+# select the decision tree with the best `roc_auc`
+playlist_dt_best_complexity <- select_best(playlist_dt_tune_res)
+
+
+#use `finalize_workflow()` and `fit()` to fit the model to the training set
+playlist_dt_final <- finalize_workflow(playlist_dectree_wf, playlist_dt_best_complexity)
+playlist_dt_final_fit <- fit(playlist_dt_final, data = playlist_train)
+```
+
+```{r}
+# saving data to load into rmd file
+save(playlist_dectree_spec, playlist_dectree_wf, playlist_dt_param_grid, playlist_dt_tune_res, playlist_best_pruned_tree, file = "/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
+```
