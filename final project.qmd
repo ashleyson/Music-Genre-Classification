@@ -1,0 +1,387 @@
+---
+title: "draft3"
+format: html
+editor: visual
+---
+
+# Introduction
+
+![](tumblr_cf911986ed439c4edbda3e97cd4a1759_63b96dd5_1280.gif)
+
+![](images/spotiify-01.gif)
+
+The aim of this project is to build a machine learning model that can predict the genre of a song. The data set I will be using is from Spotify via the **spotifyr** package. This data set is pulled from the Spotify's API containing various songs of various genres. I will be using this to implement multiple techniques to yield the most accurate model for this classification problem.
+
+## What is Music Genre?
+
+Music genre is a way of categorizing music based on its style, structure, and cultural influences. Some popular music genres include pop, rock, hip hop, jazz, blues, and country. Each genre has its own distinctive sound, rhythm, and instrumentation.
+
+## Why?
+
+Predicting the genre of a song can be useful for music lovers who are interested in discovering new music. With the large and constantly growing number of songs available, it can be difficult for listeners to find new music that matches their taste. A genre prediction model can help users to filter songs based on their preferred genre, making it easier for them to discover new music. Additionally, the model can be useful for music recommendation systems, which can suggest new songs based on a user's listening history and preferences.
+
+# Loading Packages and Data
+
+Lets load in all the required packages and raw data set for this project.
+
+```{r}
+require(tidyverse)
+require(tidymodels)
+require(spotifyr)
+require(dplyr)
+require(tidymodels)
+require(readr)
+require(kknn)
+require(ISLR)
+require(discrim)
+require(poissonreg)
+require(glmnet)
+require(corrr)
+require(corrplot)
+require(randomForest)
+require(xgboost)
+require(formattable)
+require(rpart.plot)
+require(vip)
+require(ranger)
+require(ggplot2)
+require(rsample)
+require(tune)
+tidymodels::tidymodels_prefer()
+```
+
+```{r}
+library(readr)
+#playlist_songs <- read_csv("Desktop/genre_songs.csv")
+playlist_songs <- genre_songs
+feauture_names <- names(playlist_songs)[12:23]
+glimpse(playlist_songs, width = 60)
+```
+
+# Exploratory Data Analysis
+
+## Tidying the Raw Data
+
+Lets take a look at the data set
+
+```{r}
+head(playlist_songs)
+dim(playlist_songs)
+colnames(playlist_songs)
+```
+
+There are 31,390 observations and 23 variables.
+
+Let's make sure there are no NA values that might interfere with our data analysis and can reduce the accuracy of descriptive statistics
+
+```{r}
+sum(is.na(playlist_songs) == "TRUE")
+which(is.na(playlist_songs), arr.ind = TRUE)
+```
+
+Looks like there are no NA values. Great! Let's also make sure there are no songs shorter than 4 seconds
+
+```{r}
+playlist_songs <- filter(playlist_songs, playlist_songs$duration_ms>4000)
+```
+
+## Describing the Predictors
+
+| variable                 | class     | description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|---------|---------|-------------------------------------------------------|
+| track_id                 | character | Song unique ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| track_name               | character | Song Name                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| track_artist             | character | Song Artist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| track_popularity         | double    | Song Popularity (0-100) where higher is better                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| track_album_id           | character | Album unique ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| track_album_name         | character | Song album name                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| track_album_release_date | character | Date when album released                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| playlist_name            | character | Name of playlist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| playlist_id              | character | Playlist ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| playlist_genre           | character | Playlist genre                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| playlist_subgenre        | character | Playlist subgenre                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| danceability             | double    | Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. A value of 0.0 is least danceable and 1.0 is most danceable.                                                                                                                                                                                                                                                                       |
+| energy                   | double    | Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy.                                                                                                                          |
+| key                      | double    | The estimated overall key of the track. Integers map to pitches using standard Pitch Class notation . E.g. 0 = C, 1 = C♯/D♭, 2 = D, and so on. If no key was detected, the value is -1.                                                                                                                                                                                                                                                                                                                            |
+| loudness                 | double    | The overall loudness of a track in decibels (dB). Loudness values are averaged across the entire track and are useful for comparing relative loudness of tracks. Loudness is the quality of a sound that is the primary psychological correlate of physical strength (amplitude). Values typical range between -60 and 0 db.                                                                                                                                                                                       |
+| mode                     | double    | Mode indicates the modality (major or minor) of a track, the type of scale from which its melodic content is derived. Major is represented by 1 and minor is 0.                                                                                                                                                                                                                                                                                                                                                    |
+| speechiness              | double    | Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks. |
+| acousticness             | double    | A confidence measure from 0.0 to 1.0 of whether the track is acoustic. 1.0 represents high confidence the track is acoustic.                                                                                                                                                                                                                                                                                                                                                                                       |
+| instrumentalness         | double    | Predicts whether a track contains no vocals. "Ooh" and "aah" sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly "vocal". The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content. Values above 0.5 are intended to represent instrumental tracks, but confidence is higher as the value approaches 1.0.                                                                                                                 |
+| liveness                 | double    | Detects the presence of an audience in the recording. Higher liveness values represent an increased probability that the track was performed live. A value above 0.8 provides strong likelihood that the track is live.                                                                                                                                                                                                                                                                                            |
+| valence                  | double    | A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry).                                                                                                                                                                                                                                                                  |
+| tempo                    | double    | The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration.                                                                                                                                                                                                                                                                                                                         |
+| duration_ms              | double    | Duration of song in milliseconds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+## Visual EDA
+
+Lets explore audio features by genre.
+
+### Density
+
+```{r}
+playlist_songs %>%
+  select(c('playlist_genre', feature_names)) %>%
+  pivot_longer(cols = feature_names) %>%
+  ggplot(aes(x = value)) +
+  geom_density(aes(color = playlist_genre), alpha = 0.5) +
+  facet_wrap(~name, ncol = 3, scales = 'free') +
+  labs(title = 'Spotify Audio Feature Density - by Genre',
+       x = '', y = 'density') +
+  theme(axis.text.y = element_blank()) 
+```
+
+Overall, the songs in the data set tend to have low acousticness, liveness, instrumentalness, and speechiness, with higher danceability, energy, and loudness. Valence varies across genres.
+
+Breaking things out by genre, 'EDM' tracks are least likely to be acoustic and most likely to have high energy with low valence (sad or depressed)
+
+'latin' tracks have high valence (are positive and cheerful) with danceability
+
+'rap' songs score highly for speechiness and danceability
+
+'rock' songs are most likely to be recorded live and have low danceability
+
+'pop', 'latin', and 'EDM' songs are more likely to have shorter durations compared to 'R&B', 'rap', and 'rock'
+
+Based on the density plot, it looks like energy, valence, tempo, and danceability may provide the most seperation between genres during classification, while instrumentalness and key may not help so much
+
+### Outliers
+
+There are clearly some outliers in duration that may skew analysis. Let's go ahead and remove those outliers and analyse the dataset. We will use the 'boxplot' function to isolate any values that fall outside of a given range.
+
+The default range is the interquartile range, or the spread from the 25th to 50th percentile. Because a lot of values fall outside of that range, we can widen it by incrementing the 'range' parameters.
+
+Here we have used 'range = 4', which multiplies the interquartile range by 4 to widen the spread of values we'll consider *not* be outliers
+
+```{r}
+with_outliers <- playlist_songs %>%
+  ggplot(aes(y = duration_ms)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = 'Duration') 
+duration_outliers <- boxplot(playlist_songs$duration_ms, 
+                             plot = FALSE, range = 4)$out
+playlist_songs_no_outliers <- playlist_songs %>%
+  filter(!duration_ms %in% duration_outliers) 
+without_outliers <- playlist_songs_no_outliers %>%
+  ggplot(aes(y = duration_ms)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = 'Duration, outliers removed') 
+gridExtra::grid.arrange(with_outliers, without_outliers, ncol = 1)
+```
+
+There were 131 songs that were defined as outliers and removed from the dataset, resulting in a distribution maxing out at 516,000 ms (8.6 minutes) instead of 5,100,000 ms (85 minutes).
+
+### Correlations
+
+Lets now examine the correlations between features. How do these features correlate with one another? Are there any that may be redundant?
+
+```{r}
+playlist_songs_no_outliers %>%
+  select(feature_names) %>%
+  scale() %>%
+  cor() %>%
+  corrplot::corrplot(method = 'color', 
+                     order = 'hclust', 
+                     type = 'upper', 
+                     diag = FALSE, 
+                     tl.col = 'black',
+                     addCoef.col = "grey30",
+                     number.cex = 0.6,
+                     main = 'Audio Feature Correlation',
+                     mar = c(2,2,2,2),
+                     family = 'Avenir')
+```
+
+Across all songs and genres in the dataset, energy and loudness are fairly highly correlated (0.68). Let's remove loudness, since energy appears to give more distinction between genre groups (as seen in the density plot).
+
+Energy and acousticness are negatively correlated, which makes sense, along with the positive correlation between danceability and valence (happier songs lead to more dancing). Liveness, tempo, and energy are clustered together, as are speechiness and danceability. Interestingly, danceability is negatively correlated with tempo and energy.
+
+remove loudness
+
+```{R}
+feature_names_reduced <- names(playlist_songs)[c(12:14,16:23)]
+```
+
+How do the genres correlate with each other? We'll calculate the median feature values for each genre and then compute the correlation between those to find out. This doesn't take individual song variation into account, but will give us an idea which genres are similar to each other.
+
+```{r}
+# average features by genre
+avg_genre_matrix <- playlist_songs_no_outliers %>%
+  group_by(playlist_genre) %>%
+  summarise_if(is.numeric, median, na.rm = TRUE) %>%
+  ungroup() 
+avg_genre_cor <- avg_genre_matrix %>%
+  select(feature_names_reduced, -mode) %>% 
+  scale() %>%
+  t() %>%
+  as.matrix() %>%
+  cor() 
+colnames(avg_genre_cor) <- avg_genre_matrix$playlist_genre
+row.names(avg_genre_cor) <- avg_genre_matrix$playlist_genre
+avg_genre_cor %>% corrplot::corrplot(method = 'color', 
+                     order = 'hclust',
+                     type = 'upper',
+                     tl.col = 'black',
+                     diag = FALSE,
+                     addCoef.col = "grey40",
+                     number.cex = 0.75,
+                     mar = c(2,2,2,2),
+                     main = 'Correlation Between Median Genre Feature Values',
+                     family = 'Avenir')
+```
+
+\`R&B\` and \`EDM\` is negatively correlated with all genres except for each other, which may make them easy to tell apart from the rest of the genres, but not each other. \`Latin\` and \`R&B\` are the most similar, with a positive correlation of 0.57, while \`EDM\` and \`R&B\` and \`EDM\` and \`latin\` are the most different (-0.83, -0.69).
+
+# Setting up Models
+
+decision tree, random forest, 2 more (at least 4 models)
+
+## Preparing the data for training
+
+```{r}
+playlist <- playlist_songs_no_outliers %>%
+  mutate_if(is.numeric, scale)
+playlist$mode <- as.factor(playlist$mode)
+playlist$key <- as.factor(playlist$key)
+```
+
+## Train/Test Split
+
+```{r}
+set.seed(1234)
+playlist_split <- initial_split(playlist, prop = 0.75,
+                               strata = playlist_genre)
+playlist_train <- training(playlist_split)
+playlist_test <- testing(playlist_split) 
+```
+
+```{r}
+dim(playlist_test)
+```
+
+```{r}
+dim(playlist_train)
+```
+
+## Building Our Recipe
+
+```{r}
+music_recipe <- recipe(playlist_genre ~ danceability + energy + key + mode + speechiness + acousticness + instrumentalness + liveness + valence + tempo + duration_ms ,
+                         data = playlist_train) %>%
+  step_naomit(all_predictors()) %>%
+  step_scale(all_numeric_predictors()) %>%
+  step_center(all_numeric_predictors()) %>%
+  step_dummy(mode) %>%
+  step_dummy(key)
+```
+
+## K-Fold Cross Validation
+
+```{r}
+playlist_folds <- vfold_cv(playlist_train, v = 10, strata = playlist_genre)
+```
+
+```{r}
+save(playlist_folds, music_recipe, playlist_train, playlist_test, file = "/Users/ashleyson/Desktop/Playlist-Modeling-Setup.rda")
+```
+
+## Decision Tree model
+
+```{r}
+playlist_dectree_spec <- decision_tree() %>% set_mode("classification") %>%
+  set_engine("rpart")
+playlist_dectree_wf <- workflow() %>%
+  add_recipe(music_recipe) %>%
+  add_model(playlist_dectree_spec %>%
+              set_args(cost_complexity = tune()))
+
+playlist_dt_param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+
+playlist_dt_tune_res <- tune_grid(
+  playlist_dectree_wf, 
+  resamples = playlist_folds, 
+  grid = playlist_dt_param_grid, 
+  metrics = metric_set(yardstick::roc_auc)
+)
+
+```
+
+```{r}
+playlist_best_pruned_tree <- dplyr::arrange(collect_metrics(playlist_dt_tune_res), desc(mean))
+playlist_best_pruned_tree
+
+
+playlist_dt_best_complexity <- select_best(playlist_dt_tune_res)
+playlist_dt_final <- finalize_workflow(playlist_dectree_wf, playlist_dt_best_complexity)
+playlist_dt_final_fit <- fit(playlist_dt_final, data = playlist_train)
+```
+
+```{r}
+save(playlist_dectree_spec, playlist_dectree_wf, playlist_dt_param_grid, playlist_dt_tune_res, playlist_best_pruned_tree, file = "/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
+```
+
+## Random Forest
+
+```{r}
+playlist_rand_forest_spec <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("classification")
+
+playlist_rand_forest_wf <- workflow() %>%
+  add_recipe(music_recipe) %>%
+  add_model(playlist_rand_forest_spec)
+
+
+# creating parameter grid to tune ranges of hyper parameters
+playlist_rf_param_grid <- grid_regular(mtry(range = c(2, 15)), trees(range = c(2, 10)), 
+                                  min_n(range = c(2, 8)), levels = 8)
+
+playlist_rf_tune_res_auc <- tune_grid(
+  playlist_rand_forest_wf, 
+  resamples = playlist_folds, 
+  grid = playlist_rf_param_grid, 
+  metrics = metric_set(yardstick::roc_auc)
+)
+```
+
+```{r}
+playlist_best_rd_auc <- dplyr::arrange(collect_metrics(playlist_rf_tune_res_auc), desc(mean))
+head(playlist_best_rd_auc)
+
+# select the random forest with the best `roc_auc`
+best_rf_complexity_auc <- select_best(playlist_rf_tune_res_auc)
+
+# use `finalize_workflow()` and `fit()` to fit the model to the training set
+playlist_rf_final_auc <- finalize_workflow(playlist_rand_forest_wf, best_rf_complexity_auc)
+playlist_rf_final_fit_auc <- fit(playlist_rf_final_auc, data = playlist_train)
+```
+
+```{r}
+playlist_rf_tune_res_accuracy <- tune_grid(
+  playlist_rand_forest_wf, 
+  resamples = playlist_folds, 
+  grid = playlist_rf_param_grid, 
+  metrics = metric_set(accuracy)
+)
+
+# find the `accuracy` of best-performing random forest tree on the folds
+# use `collect_metrics()` and `arrange()`
+playlist_best_rd_accuracy <- dplyr::arrange(collect_metrics(playlist_rf_tune_res_accuracy), desc(mean))
+head(playlist_best_rd_accuracy)
+
+# select the random forest with the best `accuracy`
+best_rf_complexity_accuracy <- select_best(playlist_rf_tune_res_accuracy)
+
+#use `finalize_workflow()` and `fit()` to fit the model to the training set
+playlist_rf_final_accuracy <- finalize_workflow(playlist_rand_forest_wf, best_rf_complexity_accuracy)
+playlist_rf_final_fit_accuracy <- fit(playlist_rf_final_accuracy, data = playlist_train)
+
+
+
+# saving data to load into rmd file
+save(playlist_rf_tune_res_auc, playlist_rf_final_fit_auc, playlist_best_rd_auc,
+     playlist_rf_tune_res_accuracy, playlist_rf_final_fit_accuracy, playlist_best_rd_accuracy, 
+     file = "C:/Users/ashleyson/Desktop/Playlist_Random_Forest.rda")
+```
