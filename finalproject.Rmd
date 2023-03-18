@@ -3,12 +3,12 @@ title: "Predicting Music Genre using Machine Learning (Multiclass Classification
 author: "Ashley Son"
 date: "UCSB Winter 2023"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     toc: yes
     toc_float: yes
     code_folding: hide
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +21,7 @@ The objective of this project is to construct a machine learning algorithm capab
 
 ## Data Description
 
-This project will utilize a dataset sourced from Spotify's API via the `spotifyr` package, encompassing a diverse range of songs spanning multiple genres. Leveraging this data, the research will implement vraious techniques to develop a high-performing multiclass classification model.
+This project will utilize a dataset sourced from Spotify's API via the `spotifyr` package, encompassing a diverse range of songs spanning multiple genres. Leveraging this data, the research will implement various techniques to develop a high-performing multiclass classification model.
 
 ## What is Music Genre?
 
