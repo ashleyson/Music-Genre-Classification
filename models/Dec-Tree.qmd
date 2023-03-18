@@ -4,12 +4,6 @@ format: html
 editor: visual
 ---
 
-## Decision Tree model
-
-```{r}
-load("/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
-```
-
 ## Decision Tree Model
 
 ```{r}
@@ -22,7 +16,6 @@ playlist_dectree_wf <- workflow() %>%
 
 playlist_dt_param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
 
-#auc
 playlist_dt_tune_res <- tune_grid(
   playlist_dectree_wf, 
   resamples = playlist_folds, 
@@ -30,30 +23,18 @@ playlist_dt_tune_res <- tune_grid(
   metrics = metric_set(yardstick::roc_auc)
 )
 
-#accuracy
-playlist_dt_tune_res2 <- tune_grid(
-  playlist_dectree_wf, 
-  resamples = playlist_folds, 
-  grid = playlist_dt_param_grid, 
-  metrics = metric_set(yardstick::accuracy)
-)
 ```
 
 ```{r}
-#auc
 playlist_best_pruned_tree <- dplyr::arrange(collect_metrics(playlist_dt_tune_res), desc(mean))
 playlist_best_pruned_tree
 
-#accuracy
-playlist_best_pruned_tree2 <- dplyr::arrange(collect_metrics(playlist_dt_tune_res2), desc(mean))
-playlist_best_pruned_tree2
-#0.460455
-
 playlist_dt_best_complexity <- select_best(playlist_dt_tune_res)
+
 playlist_dt_final <- finalize_workflow(playlist_dectree_wf, playlist_dt_best_complexity)
 playlist_dt_final_fit <- fit(playlist_dt_final, data = playlist_train)
 ```
 
 ```{r}
-save(playlist_dectree_spec, playlist_dectree_wf, playlist_dt_param_grid, playlist_dt_tune_res, playlist_best_pruned_tree, playlist_dt_tune_res2, playlist_best_pruned_tree2, file = "/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
+save(playlist_dectree_spec, playlist_dectree_wf, playlist_dt_param_grid, playlist_dt_tune_res, playlist_best_pruned_tree, file = "/Users/ashleyson/Desktop/Playlist-DecTree-Model.rda")
 ```

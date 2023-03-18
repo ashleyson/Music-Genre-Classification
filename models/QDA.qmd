@@ -20,7 +20,7 @@ predict(playlist_qda_fit, new_data = playlist_train, type="prob")
 
 playlist_qda_kfold_fit <- fit_resamples(playlist_qda_wkflow, playlist_folds, control = control_grid(save_pred = TRUE))
 collect_metrics(playlist_qda_kfold_fit)
-#accuracy = 0.4231
+
 playlist_roc_qda <- augment(playlist_qda_fit, playlist_train)
 save(playlist_qda_mod, playlist_qda_wkflow, playlist_qda_fit, playlist_qda_kfold_fit,
      file = "/Users/ashleyson/Desktop/Playlist_QDA.rda")

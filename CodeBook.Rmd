@@ -1,0 +1,54 @@
+---
+title: "Codebook"
+author: "Ashley Son"
+date: "2023-03-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+`track.id`: Song ID (character)
+
+`track.name`: Song Name (character)
+
+`track.artist`: Song Artist (character)
+
+`track.popularity`: Song populary, (0-100), higher the more popular (double)
+
+`track.album.id`: Album ID (character)
+
+`track.album.release_date`: Album release date (character)
+
+`playlist_name`: Playlist Name (character)
+
+`playlist_id`: Playlist ID (character)
+
+`playlist_genre`: Playlist genre (character)
+
+`playlist_subgenre`: Playlist subgenre (character)
+
+`danceability`: How suitable a track is for dancing based on the musical features of the song including rhythm and tempo. 0.0 being lest danceable and 1.0 being most danceable. (double)
+
+`energy`: A measure from 0.0 to 1.0 that represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy. (double)
+
+`key`: The estimated overall key of the track. Integers map to pitches using standard Pitch Class notation . E.g. 0 = C, 1 = C♯/D♭, 2 = D, and so on. If no key was detected, the value is -1. (double)
+
+`loudness`: The overall averaged loudness of a track in decibels (dB). Measured with the quality of a sound that is the primary psychological correlate of physical strength (amplitude). Values typical range between -60 and 0 db. (double)
+
+`mode`: The modality (major or minor) of a track, the type of scale from which its melodic content is derived. Major is represented by 1 and minor is 0. (double)
+
+`speechieness` The presence of spoken words in a track. The 1.0 being most speechiness. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks. (double)
+
+`acousticness`: A value ranging from 0.0 to 1.0 of whether the track is acoustic. The higher the value the higher confidence the track is acoustic. (double)
+
+`instrumentalness`: Predicts whether a track contains no vocals. "Ooh" and "aah" sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly "vocal". The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content. Values above 0.5 are intended to represent instrumental tracks, but confidence is higher as the value approaches 1.0. (double)
+
+`liveness`: Detects the presence of an audience in the recording. Higher liveness values represent an increased probability that the track was performed live. A value above 0.8 provides strong likelihood that the track is live. (double)
+
+`valence`: A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry). (double)
+
+`tempo`: The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration. (double)
+
+`duration_ms`: Duration of song in milliseconds (double)

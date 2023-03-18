@@ -33,14 +33,12 @@ playlist_lasso_tune_res <- tune_grid(
 
 ```{r}
 collect_metrics(playlist_lasso_tune_res)  
+
 best_playlist_lasso_penalty<- select_best(playlist_lasso_tune_res, metric = "roc_auc")
-best_playlist_lasso_penalty_accuracy<- select_best(playlist_lasso_tune_res, metric = "accuracy")
+
 playlist_lasso_final <- finalize_workflow(playlist_lasso_workflow, best_playlist_lasso_penalty)
 playlist_lasso_final_fit <- fit(playlist_lasso_final, data = playlist_train)
 
-#	0.45670 accuracy
-# 0.7800820 ROC_AUC
-
-save(playlist_lasso_spec,playlist_lasso_workflow,lasso_pen_mix_grid,playlist_lasso_tune_res,best_playlist_lasso_penalty,best_playlist_lasso_penalty_accuracy,playlist_lasso_final,playlist_lasso_final_fit,
+save(playlist_lasso_spec,playlist_lasso_workflow,lasso_pen_mix_grid,playlist_lasso_tune_res,best_playlist_lasso_penalty,playlist_lasso_final,playlist_lasso_final_fit,
      file = "/Users/ashleyson/Desktop/Playlist_LASSO.rda")
 ```
