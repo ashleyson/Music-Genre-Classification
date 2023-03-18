@@ -1,1 +1,3 @@
 # Music-Genre-Classification
+The objective of this project is to construct a machine learning algorithm capable of accurately forecasting the musical genre classification of a given song.
+This project will utilize a dataset sourced from Spotify's API via the `spotifyr` package, encompassing a diverse range of songs spanning multiple genres. Leveraging this data, the research will implement vraious techniques to develop a high-performing multiclass classification model.
